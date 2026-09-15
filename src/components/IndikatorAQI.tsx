@@ -7,7 +7,7 @@ export default function IndikatorAQI({
     tingkat,
     diperbaruiPada,
 }: LaporanUdara) {
-    const warna =
+    const warnaAQI =
         tingkat === "BAIK"
             ? "green"
             : tingkat === "SEDANG"
@@ -17,7 +17,13 @@ export default function IndikatorAQI({
                     : "darkred";
 
     return (
-        <View style={{ padding: 16, borderRadius: 8 }}>
+        <View
+            style={{
+                padding: 16,
+                borderRadius: 8,
+                backgroundColor: "#F4F7FA",
+            }}
+        >
             <Text style={{ fontWeight: "bold", fontSize: 18 }}>
                 {kota}
             </Text>
@@ -26,12 +32,14 @@ export default function IndikatorAQI({
                 AQI: {indeksAQI}
             </Text>
 
-            <Text style={{ color: warna, fontWeight: "bold" }}>
-                {tingkat}
+            <Text style={{ color: warnaAQI }}>
+                Tingkat: {tingkat}
             </Text>
 
             {diperbaruiPada && (
-                <Text>Diperbarui: {diperbaruiPada}</Text>
+                <Text>
+                    Diperbarui: {diperbaruiPada}
+                </Text>
             )}
         </View>
     );
