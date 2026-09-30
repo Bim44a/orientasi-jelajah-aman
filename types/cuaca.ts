@@ -17,3 +17,11 @@ export interface LaporanUdara {
     tingkat: "BAIK" | "SEDANG" | "TIDAK_SEHAT" | "BERBAHAYA";
     diperbaruiPada?: string;
 }
+
+//Pertemuan 5
+export interface WeatherCardProps {
+    kota: string;
+    suhu: number;
+    tingkatAQI: TingkatAQI;
+    indeksAQI?: number; // baru: angka asli dari API, opsional
+}
