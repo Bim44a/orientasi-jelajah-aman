@@ -50,15 +50,19 @@ export default function HalamanUtama() {
       if (idSaatIni === requestIdRef.current) setSedangMemuat(false);
     }
   }
+  
   return (
     <SafeAreaView style={{ flex: 1, padding: 16, gap: 16 }}>
       <SearchBox onCari={setTeksCari} />
+
       {hasilPencarian.map((kota) => (
         <TouchableOpacity key={kota.id} onPress={() => pilihKota(kota)}>
           <Text>{kota.name}</Text>
         </TouchableOpacity>
       ))}
+
       {sedangMemuat && <ActivityIndicator />}
+
       {pesanError && (
         <View>
           <Text>{pesanError}</Text>
@@ -68,20 +72,36 @@ export default function HalamanUtama() {
           />
         </View>
       )}
+
       {cuaca && kualitasUdara && kotaTerpilih && !sedangMemuat && (
-        <WeatherCard
-          kota={kotaTerpilih.name}
-          suhu={cuaca.saatIni.suhu}
-          tingkatAQI={konversiTingkatAQI(kualitasUdara.indeksAQI)}
-          indeksAQI={kualitasUdara.indeksAQI}
-        />
+        <View style={{ gap: 8 }}>
+          <WeatherCard
+            kota={kotaTerpilih.name}
+            suhu={cuaca.saatIni.suhu}
+            tingkatAQI={konversiTingkatAQI(kualitasUdara.indeksAQI)}
+            indeksAQI={kualitasUdara.indeksAQI}
+          />
+
+          {/* Latihan Mandiri No. 1: Tampilkan suhu maksimal dan minimal hari ini */}
+          <Text style={{ fontSize: 14, color: "#333" }}>
+            Suhu Hari Ini: Maks {cuaca.harian.suhuMaksimal[0]}°C | Min {cuaca.harian.suhuMinimal[0]}°C
+          </Text>
+        </View>
       )}
+
       {cuaca && (
         <Text style={{ fontSize: 12, color: "#888" }}>
-          Kondisi: {labelKodeCuaca(cuaca.saatIni.kodeCuaca)} • Angin
-          {cuaca.saatIni.kecepatanAngin} km/j
+          Kondisi: {labelKodeCuaca(cuaca.saatIni.kodeCuaca)} | Angin: {cuaca.saatIni.kecepatanAngin} km/j
         </Text>
       )}
+
+      {/* Latihan Mandiri No. 2: Tampilkan PM2.5 dan PM10 di dekat Atribusi */}
+      {kualitasUdara && (
+        <Text style={{ fontSize: 11, color: "#666" }}>
+          Polusi Udara - PM2.5: {kualitasUdara.pm25} µg/m³ | PM10: {kualitasUdara.pm10} µg/m³
+        </Text>
+      )}
+
       <AtribusiCuaca />
     </SafeAreaView>
   );
