@@ -1,7 +1,8 @@
 // src/app/(tabs)/index.tsx
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { View, Text, ActivityIndicator, Button, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect, router } from "expo-router";
 import SearchBox from "../../components/SearchBox";
 import WeatherCard from "../../components/WeatherCard";
 import AtribusiCuaca from "../../components/AtribusiCuaca";
@@ -14,7 +15,8 @@ import { labelKodeCuaca } from "../../constants/weatherCodes";
 import { HasilGeocoding } from "../../../types/geocoding";
 import { DataCuacaLengkap, DataKualitasUdara } from "../../../types/weather";
 import { mintaIzinLokasi, ambilKoordinatSaatIni } from "../../services/locationService";
-import { router } from "expo-router";
+import { ambilSemuaFavorit } from "../../services/favoritStorage";
+
 export default function HalamanUtama() {
   const [teksCari, setTeksCari] = useState("");
   const [hasilPencarian, setHasilPencarian] = useState<HasilGeocoding[]>([]);
@@ -24,8 +26,13 @@ export default function HalamanUtama() {
   const [sedangMemuat, setSedangMemuat] = useState(false);
   const [pesanLokasi, setPesanLokasi] = useState<string | null>(null);
   const [pesanError, setPesanError] = useState<string | null>(null);
+
+  // State untuk Latihan Mandiri No. 3 (Cek duplikat favorit)
+  const [sudahFavorit, setSudahFavorit] = useState(false);
+
   const teksTertunda = useDebounce(teksCari, 500);
   const requestIdRef = useRef(0); // pencegah race condition
+
   useEffect(() => {
     if (teksTertunda.trim().length === 0) {
       setHasilPencarian([]);
@@ -33,11 +40,31 @@ export default function HalamanUtama() {
     }
     cariKota(teksTertunda).then(setHasilPencarian).catch(() => setHasilPencarian([]));
   }, [teksTertunda]);
+
+  // Gunakan useFocusEffect agar status tombol favorit selalu terbarui saat kembali ke Beranda
+  useFocusEffect(
+    useCallback(() => {
+      if (kotaTerpilih) {
+        ambilSemuaFavorit().then((list) => {
+          const ada = list.some((k) => k.id === kotaTerpilih.id);
+          setSudahFavorit(ada);
+        });
+      }
+    }, [kotaTerpilih])
+  );
+
   async function pilihKota(kota: HasilGeocoding) {
     setKotaTerpilih(kota);
     const idSaatIni = ++requestIdRef.current;
     setSedangMemuat(true);
     setPesanError(null);
+
+    // Cek langsung status favorit saat kota dipilih
+    ambilSemuaFavorit().then((list) => {
+      const ada = list.some((k) => k.id === kota.id);
+      setSudahFavorit(ada);
+    });
+
     try {
       const [dataCuaca, dataAQI] = await Promise.all([
         ambilCuaca(kota.latitude, kota.longitude),
@@ -76,7 +103,6 @@ export default function HalamanUtama() {
     });
   }
 
-
   return (
     <SafeAreaView style={{ flex: 1, padding: 16, gap: 16 }}>
       <SearchBox onCari={setTeksCari} />
@@ -109,20 +135,28 @@ export default function HalamanUtama() {
             suhu={cuaca.saatIni.suhu}
             tingkatAQI={konversiTingkatAQI(kualitasUdara.indeksAQI)}
           />
-          <Button
-            title="Tambahkan ke Favorit"
-            onPress={() =>
-              router.push({
-                pathname: "/tambah-favorit",
-                params: {
-                  id: String(kotaTerpilih.id),
-                  nama: kotaTerpilih.name,
-                  lat: String(kotaTerpilih.latitude),
-                  lon: String(kotaTerpilih.longitude),
-                },
-              })
-            }
-          />
+
+          {/* Latihan Mandiri No. 3: Sembunyikan/Nonaktifkan tombol jika sudah favorit */}
+          {sudahFavorit ? (
+            <Text style={{ fontStyle: "italic", color: "green", textAlign: "center", marginVertical: 8 }}>
+              ✔ Kota ini sudah ada di daftar favorit
+            </Text>
+          ) : (
+            <Button
+              title="Tambahkan ke Favorit"
+              onPress={() =>
+                router.push({
+                  pathname: "/tambah-favorit",
+                  params: {
+                    id: String(kotaTerpilih.id),
+                    nama: kotaTerpilih.name,
+                    lat: String(kotaTerpilih.latitude),
+                    lon: String(kotaTerpilih.longitude),
+                  },
+                })
+              }
+            />
+          )}
         </>
       )}
 
