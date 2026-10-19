@@ -104,3 +104,9 @@ export async function daftarRiwayatPencarian(): Promise<RingkasanKotaTersimpan[]
         disimpanPada: b.disimpan_pada,
     }));
 }
+
+// Menghapus cache spesifik berdasarkan kunci item kota
+export async function hapusCacheItem(kunci: string): Promise<void> {
+    const db = await ambilDatabase();
+    await db.runAsync("DELETE FROM cache_cuaca WHERE kunci = ?", [kunci]);
+}

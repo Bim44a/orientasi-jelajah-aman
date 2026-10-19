@@ -4,7 +4,7 @@ import { View, Text, Button, Alert, ScrollView, TouchableOpacity } from "react-n
 import { useFocusEffect, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ambilSemuaFavorit, hapusFavorit } from "../../services/favoritStorage";
-import { daftarRiwayatPencarian } from "../../services/cacheRepository";
+import { daftarRiwayatPencarian, hapusCacheItem } from "../../services/cacheRepository";
 import { KotaFavorit } from "../../../types/favorit";
 import { RingkasanKotaTersimpan } from "../../../types/cache";
 
@@ -13,13 +13,15 @@ export default function TabRiwayat() {
     const [riwayatPencarian, setRiwayatPencarian] = useState<RingkasanKotaTersimpan[]>([]);
     const router = useRouter();
 
+    const muatData = useCallback(() => {
+        ambilSemuaFavorit().then(setDaftarFavorit);
+        daftarRiwayatPencarian().then(setRiwayatPencarian).catch(() => setRiwayatPencarian([]));
+    }, []);
+
     useFocusEffect(
         useCallback(() => {
-            // Memuat data Favorit dari AsyncStorage
-            ambilSemuaFavorit().then(setDaftarFavorit);
-            // Memuat data Riwayat Pencarian terakhir (maks 10) dari SQLite (Tugas 2 UTS)
-            daftarRiwayatPencarian().then(setRiwayatPencarian).catch(() => setRiwayatPencarian([]));
-        }, [])
+            muatData();
+        }, [muatData])
     );
 
     // Konfirmasi hapus favorit
@@ -42,24 +44,48 @@ export default function TabRiwayat() {
         );
     }
 
+    // Konfirmasi dan hapus cache item riwayat
+    async function konfirmasiHapusCache(kunci: string, namaKota: string) {
+        Alert.alert(
+            "Hapus Cache Kota",
+            `Apakah Anda yakin ingin menghapus data cache untuk kota ${namaKota}?`,
+            [
+                { text: "Batal", style: "cancel" },
+                {
+                    text: "Hapus",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            await hapusCacheItem(kunci);
+                            muatData(); // Muat ulang daftar setelah dihapus
+                        } catch (error) {
+                            console.error("Gagal menghapus cache item:", error);
+                        }
+                    },
+                },
+            ],
+            { cancelable: true }
+        );
+    }
+
     return (
         <SafeAreaView style={{ flex: 1, padding: 16, backgroundColor: "#F8FAFC" }}>
             <ScrollView contentContainerStyle={{ gap: 16, paddingBottom: 24 }}>
-
-                {/* Bagian 1: Riwayat Pencarian Terakhir (Tugas 2 UTS) */}
+                
+                {/* Riwayat Pencarian Terakhir */}
                 <View>
                     <Text style={{ fontSize: 18, fontWeight: "bold", color: "#0B2545", marginBottom: 4 }}>
                         Riwayat Pencarian Terakhir
                     </Text>
                     <Text style={{ fontSize: 12, color: "#64748B", marginBottom: 8 }}>
-                        Maksimal 10 pencarian kota terakhir. Ketuk untuk melihat cuaca.
+                        Maksimal 10 pencarian kota terakhir. Ketuk untuk melihat cuaca atau hapus cache.
                     </Text>
 
                     {riwayatPencarian.length === 0 ? (
                         <Text style={{ color: "#94A3B8", fontStyle: "italic" }}>Belum ada riwayat pencarian.</Text>
                     ) : (
                         riwayatPencarian.map((item) => (
-                            <TouchableOpacity
+                            <View
                                 key={item.kunci}
                                 style={{
                                     backgroundColor: "#FFFFFF",
@@ -68,29 +94,42 @@ export default function TabRiwayat() {
                                     marginBottom: 6,
                                     borderWidth: 1,
                                     borderColor: "#E2E8F0",
-                                }}
-                                onPress={() => {
-                                    // Ketika item riwayat diklik, otomatis memunculkan pencarian kota tersebut di Beranda
-                                    router.push({
-                                        pathname: "/(tabs)",
-                                        params: {
-                                            lat: String(item.latitude),
-                                            lon: String(item.longitude),
-                                            nama: item.nama,
-                                        },
-                                    });
+                                    flexDirection: "row",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
                                 }}
                             >
-                                <Text style={{ fontSize: 15, fontWeight: "600", color: "#1E293B" }}>{item.nama}</Text>
-                                <Text style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>
-                                    Disimpan: {new Date(item.disimpanPada).toLocaleDateString()}
-                                </Text>
-                            </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={{ flex: 1 }}
+                                    onPress={() => {
+                                        router.push({
+                                            pathname: "/(tabs)",
+                                            params: {
+                                                lat: String(item.latitude),
+                                                lon: String(item.longitude),
+                                                nama: item.nama,
+                                            },
+                                        });
+                                    }}
+                                >
+                                    <Text style={{ fontSize: 15, fontWeight: "600", color: "#1E293B" }}>{item.nama}</Text>
+                                    <Text style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>
+                                        Disimpan: {new Date(item.disimpanPada).toLocaleDateString()}
+                                    </Text>
+                                </TouchableOpacity>
+
+                                {/* Tombol Hapus Cache per Item dengan Alert */}
+                                <Button
+                                    title="Hapus"
+                                    color="#DC2626"
+                                    onPress={() => konfirmasiHapusCache(item.kunci, item.nama)}
+                                />
+                            </View>
                         ))
                     )}
                 </View>
 
-                {/* Bagian 2: Kota Favorit (Asli Pertemuan 6) */}
+                {/* Kota Favorit  */}
                 <View style={{ marginTop: 8 }}>
                     <Text style={{ fontSize: 18, fontWeight: "bold", color: "#0B2545", marginBottom: 4 }}>
                         Kota Favorit
