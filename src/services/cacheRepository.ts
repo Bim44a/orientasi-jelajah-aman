@@ -87,3 +87,20 @@ export async function hapusSemuaCache(): Promise<void> {
     const db = await ambilDatabase();
     await db.runAsync("DELETE FROM cache_cuaca");
 }
+
+// Mengambil riwayat pencarian terakhir (maksimal 10 item) 
+export async function daftarRiwayatPencarian(): Promise<RingkasanKotaTersimpan[]> {
+    const db = await ambilDatabase();
+    const semua = await db.getAllAsync<BarisRingkasan>(
+        `SELECT kunci, kota_id, nama_kota, latitude, longitude, disimpan_pada
+         FROM cache_cuaca ORDER BY disimpan_pada DESC LIMIT 10`
+    );
+    return semua.map((b) => ({
+        kunci: b.kunci,
+        id: b.kota_id,
+        nama: b.nama_kota,
+        latitude: b.latitude,
+        longitude: b.longitude,
+        disimpanPada: b.disimpan_pada,
+    }));
+}

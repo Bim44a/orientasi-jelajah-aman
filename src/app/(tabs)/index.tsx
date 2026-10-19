@@ -9,7 +9,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import SearchBox from "../../components/SearchBox";
 import WeatherCard from "../../components/WeatherCard";
 import AtribusiCuaca from "../../components/AtribusiCuaca";
@@ -34,6 +34,20 @@ export default function HalamanUtama() {
   const [pesanLokasi, setPesanLokasi] = useState<string | null>(null);
   const teksTertunda = useDebounce(teksCari, 500);
   const requestIdRef = useRef(0); // pencegah race condition
+  const params = useLocalSearchParams<{ lat?: string; lon?: string; nama?: string }>();
+  // Menangkap klik dari tab Riwayat untuk otomatis memuat kota
+  useEffect(() => {
+    if (params.lat && params.lon && params.nama) {
+      pilihKota({
+        id: Date.now(),
+        name: params.nama,
+        latitude: parseFloat(params.lat),
+        longitude: parseFloat(params.lon),
+        country: "",
+      });
+    }
+  }, [params.lat, params.lon, params.nama]);
+
   async function muatKotaTersimpan() {
     setKotaTersimpan(await daftarKotaTersimpan());
   }
