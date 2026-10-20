@@ -1,8 +1,9 @@
 // src/app/(tabs)/riwayat.tsx
-import { useState, useCallback } from "react";
-import { View, Text, Button, Alert, ScrollView, TouchableOpacity } from "react-native";
+import { useState, useCallback, useEffect } from "react";
+import { View, Text, Button, Alert, ScrollView, TouchableOpacity, DeviceEventEmitter } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ambilSemuaFavorit, hapusFavorit } from "../../services/favoritStorage";
 import { daftarRiwayatPencarian, hapusCacheItem } from "../../services/cacheRepository";
 import { KotaFavorit } from "../../../types/favorit";
@@ -11,6 +12,7 @@ import { RingkasanKotaTersimpan } from "../../../types/cache";
 export default function TabRiwayat() {
     const [daftarFavorit, setDaftarFavorit] = useState<KotaFavorit[]>([]);
     const [riwayatPencarian, setRiwayatPencarian] = useState<RingkasanKotaTersimpan[]>([]);
+    const [isDark, setIsDark] = useState(false);
     const router = useRouter();
 
     const muatData = useCallback(() => {
@@ -21,8 +23,22 @@ export default function TabRiwayat() {
     useFocusEffect(
         useCallback(() => {
             muatData();
+            AsyncStorage.getItem("user_theme")
+                .then((savedTheme) => {
+                    setIsDark(savedTheme === "gelap");
+                })
+                .catch(() => { });
         }, [muatData])
     );
+
+    useEffect(() => {
+        const subscription = DeviceEventEmitter.addListener("themeChanged", (newTheme) => {
+            setIsDark(newTheme === "gelap");
+        });
+        return () => {
+            subscription.remove();
+        };
+    }, []);
 
     // Konfirmasi hapus favorit
     async function konfirmasiDanHapus(id: number, namaKota: string) {
@@ -69,15 +85,15 @@ export default function TabRiwayat() {
     }
 
     return (
-        <SafeAreaView style={{ flex: 1, padding: 16, backgroundColor: "#F8FAFC" }}>
+        <SafeAreaView style={{ flex: 1, padding: 16, backgroundColor: isDark ? "#0F172A" : "#F8FAFC" }}>
             <ScrollView contentContainerStyle={{ gap: 16, paddingBottom: 24 }}>
-                
+
                 {/* Riwayat Pencarian Terakhir */}
                 <View>
-                    <Text style={{ fontSize: 18, fontWeight: "bold", color: "#0B2545", marginBottom: 4 }}>
+                    <Text style={{ fontSize: 18, fontWeight: "bold", color: isDark ? "#F8FAFC" : "#0B2545", marginBottom: 4 }}>
                         Riwayat Pencarian Terakhir
                     </Text>
-                    <Text style={{ fontSize: 12, color: "#64748B", marginBottom: 8 }}>
+                    <Text style={{ fontSize: 12, color: isDark ? "#94A3B8" : "#64748B", marginBottom: 8 }}>
                         Maksimal 10 pencarian kota terakhir. Ketuk untuk melihat cuaca atau hapus cache.
                     </Text>
 
@@ -88,12 +104,12 @@ export default function TabRiwayat() {
                             <View
                                 key={item.kunci}
                                 style={{
-                                    backgroundColor: "#FFFFFF",
+                                    backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
                                     padding: 12,
                                     borderRadius: 8,
                                     marginBottom: 6,
                                     borderWidth: 1,
-                                    borderColor: "#E2E8F0",
+                                    borderColor: isDark ? "#334155" : "#E2E8F0",
                                     flexDirection: "row",
                                     justifyContent: "space-between",
                                     alignItems: "center",
@@ -112,8 +128,8 @@ export default function TabRiwayat() {
                                         });
                                     }}
                                 >
-                                    <Text style={{ fontSize: 15, fontWeight: "600", color: "#1E293B" }}>{item.nama}</Text>
-                                    <Text style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>
+                                    <Text style={{ fontSize: 15, fontWeight: "600", color: isDark ? "#F8FAFC" : "#1E293B" }}>{item.nama}</Text>
+                                    <Text style={{ fontSize: 11, color: isDark ? "#94A3B8" : "#64748B", marginTop: 2 }}>
                                         Disimpan: {new Date(item.disimpanPada).toLocaleDateString()}
                                     </Text>
                                 </TouchableOpacity>
@@ -121,7 +137,6 @@ export default function TabRiwayat() {
                                 {/* Tombol Hapus Cache per Item dengan Alert */}
                                 <Button
                                     title="Hapus"
-                                    color="#DC2626"
                                     onPress={() => konfirmasiHapusCache(item.kunci, item.nama)}
                                 />
                             </View>
@@ -131,10 +146,10 @@ export default function TabRiwayat() {
 
                 {/* Kota Favorit  */}
                 <View style={{ marginTop: 8 }}>
-                    <Text style={{ fontSize: 18, fontWeight: "bold", color: "#0B2545", marginBottom: 4 }}>
+                    <Text style={{ fontSize: 18, fontWeight: "bold", color: isDark ? "#F8FAFC" : "#0B2545", marginBottom: 4 }}>
                         Kota Favorit
                     </Text>
-                    <Text style={{ color: "#666", marginBottom: 8 }}>
+                    <Text style={{ color: isDark ? "#94A3B8" : "#666", marginBottom: 8 }}>
                         Tersimpan {daftarFavorit.length} kota
                     </Text>
 
@@ -147,15 +162,15 @@ export default function TabRiwayat() {
                                 flexDirection: "row",
                                 justifyContent: "space-between",
                                 alignItems: "center",
-                                backgroundColor: "#FFFFFF",
+                                backgroundColor: isDark ? "#1E293B" : "#FFFFFF",
                                 padding: 12,
                                 borderRadius: 8,
                                 marginBottom: 6,
                                 borderWidth: 1,
-                                borderColor: "#E2E8F0",
+                                borderColor: isDark ? "#334155" : "#E2E8F0",
                             }}
                         >
-                            <Text style={{ fontSize: 15, fontWeight: "500", color: "#1E293B" }}>{kota.nama}</Text>
+                            <Text style={{ fontSize: 15, fontWeight: "500", color: isDark ? "#F8FAFC" : "#1E293B" }}>{kota.nama}</Text>
                             <Button title="Hapus" onPress={() => konfirmasiDanHapus(kota.id, kota.nama)} />
                         </View>
                     ))}
